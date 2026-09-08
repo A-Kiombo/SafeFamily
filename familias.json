@@ -1,0 +1,20 @@
+{
+  "FILHO1": {
+    "id": "crianca_joao",
+    "nome": "João",
+    "responsavel": "Carlos (Pai)",
+    "codigoPais": "FILHO1"
+  },
+  "FILHO2": {
+    "id": "crianca_maria",
+    "nome": "Maria",
+    "responsavel": "Ana (Mãe)",
+    "codigoPais": "FILHO2"
+  },
+  "ANAIR@KIOMBO123": {
+    "id": "anair@kiombo",
+    "nome": "Anair Kiombo",
+    "responsavel": "Anibal Kiobmo",
+    "codigoPais": "ANAIR@KIOMBO123"
+  }
+}

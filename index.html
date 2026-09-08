@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeFamily - Painel dos Pais</title>
+    <!-- Fonte moderna do Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS do Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #0f172a; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden;
+        }
+        
+        /* --- TELA DE LOGIN / BOAS-VINDAS MODERNA --- */
+        #welcome-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3c72 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            padding: 20px;
+            transition: opacity 0.4s ease;
+        }
+        .welcome-card {
+            background: #ffffff;
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            text-align: center;
+            width: 100%;
+            max-width: 440px;
+        }
+        .icon-badge {
+            width: 64px; height: 64px;
+            background: #e0f2fe;
+            color: #0284c7;
+            font-size: 28px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            margin: 0 auto 20px auto;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+        }
+        .welcome-card h1 { color: #0f172a; margin: 0 0 8px 0; font-size: 24px; font-weight: 700; }
+        .welcome-card p { color: #64748b; font-size: 14px; line-height: 1.5; margin-bottom: 24px; }
+        
+        .welcome-card input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 16px;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 600;
+            transition: border-color 0.2s;
+        }
+        .welcome-card input:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+        
+        .welcome-card button {
+            width: 100%;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transition: background 0.2s;
+        }
+        .welcome-card button:hover { background: #1d4ed8; }
+        #erro-msg { color: #dc2626; font-size: 13px; margin-top: 14px; font-weight: 500; }
+
+        /* --- PAINEL PRINCIPAL DE MONITORAMENTO --- */
+        header { 
+            background: #1e293b; 
+            color: white; 
+            padding: 14px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        header h2 { margin: 0; font-size: 16px; font-weight: 600; }
+        
+        .badge-status {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .badge-status.online {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+        .badge-status.emergencia {
+            background: rgba(220, 38, 38, 0.4);
+            color: #fca5a5;
+            animation: piscar 1s infinite alternate;
+        }
+        @keyframes piscar {
+            from { opacity: 1; }
+            to { opacity: 0.5; }
+        }
+
+        #map { flex-grow: 1; width: 100%; z-index: 1; }
+        
+        /* --- BOTÕES E PAINEIS FLUTUANTES NO MAPA --- */
+        .btn-flutuante {
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            font-size: 12px;
+            color: #334155;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-flutuante:hover { background: #f8fafc; transform: translateY(-1px); }
+        
+        #btnTrocarFilho { top: 75px; left: 16px; background: #ea580c; color: white; }
+        #btnTrocarFilho:hover { background: #c2410c; }
+        
+        #btnSuporte { top: 125px; left: 16px; background: #475569; color: white; }
+        #btnSuporte:hover { background: #334155; }
+        
+        #btnAlternar { top: 75px; right: 16px; }
+
+        /* Cartão de Informações de Coordenadas Flutuante */
+        .info-card-map {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #475569;
+            font-weight: 500;
+            max-width: 90%;
+            text-align: center;
+        }
+        .info-item b { color: #0f172a; }
+
+        /* --- MODAL DE SUPORTE TÉCNICO --- */
+        #modalSuporte {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 4000;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .modal-content h3 { margin-top: 0; color: #1e293b; font-size: 18px; }
+        .modal-content p { font-size: 13px; color: #64748b; margin-bottom: 14px; }
+        .modal-content textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: none;
+            margin-bottom: 14px;
+        }
+        .modal-content textarea:focus { border-color: #2563eb; outline: none; }
+        .btn-modal-enviar {
+            background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; font-size: 14px;
+        }
+        .btn-modal-enviar:hover { background: #1d4ed8; }
+        .btn-modal-fechar {
+            background: transparent; color: #64748b; border: none; padding: 8px; width: 100%; cursor: pointer; margin-top: 6px; font-size: 13px; font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Janela de Boas-Vindas Moderna -->
+    <div id="welcome-screen">
+        <div class="welcome-card">
+            <div class="icon-badge">🛡️</div>
+            <h1>SafeFamily</h1>
+            <p>Monitore a segurança da sua família em tempo real com precisão e total tranquilidade.</p>
+            <input type="text" id="inputCodigo" placeholder="EX: FILHO1" autocomplete="off">
+            <button id="btnVincular">Acessar Painel</button>
+            <div id="erro-msg"></div>
+        </div>
+    </div>
+
+    <!-- Cabeçalho do Painel -->
+    <header>
+        <div class="header-left">
+            <h2 id="tituloPainel">SafeFamily - Monitoramento</h2>
+        </div>
+        <div id="status" class="badge-status">
+            <span>🔴</span> Aguardando sinal...
+        </div>
+    </header>
+
+    <!-- Botões Flutuantes -->
+    <button class="btn-flutuante" id="btnTrocarFilho">👥 Trocar de Filho</button>
+    <button class="btn-flutuante" id="btnSuporte">🛠️ Suporte Admin</button>
+    <button class="btn-flutuante" id="btnAlternar">🔄 Mudar para Ruas</button>
+    
+    <!-- Mapa -->
+    <div id="map"></div>
+
+    <!-- Cartão Informativo Inferior -->
+    <div class="info-card-map" id="infoCardMap" style="display: none;">
+        <div class="info-item">Lat/Lng: <b id="txtCoords">--</b></div>
+        <div class="info-item">Atualizado: <b id="txtHora">--</b></div>
+    </div>
+
+    <!-- Modal de Suporte Técnico / Reportar Problema -->
+    <div id="modalSuporte">
+        <div class="modal-content">
+            <h3>🛠️ Relatar Problema ao Admin</h3>
+            <p>Encontrou alguma falha técnica ou comportamento estranho no app? Descreva abaixo para o administrador:</p>
+            <textarea id="txtProblema" rows="4" placeholder="Ex: O mapa demorou a atualizar as coordenadas..."></textarea>
+            <button class="btn-modal-enviar" id="btnEnviarProblema">Enviar para o Administrador</button>
+            <button class="btn-modal-fechar" id="btnFecharSuporte">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <script>
+        const socket = io('http://localhost:3000');
+
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const inputCodigo = document.getElementById('inputCodigo');
+        const btnVincular = document.getElementById('btnVincular');
+        const erroMsg = document.getElementById('erro-msg');
+        const tituloPainel = document.getElementById('tituloPainel');
+        const statusDiv = document.getElementById('status');
+        const btnAlternar = document.getElementById('btnAlternar');
+        const btnTrocarFilho = document.getElementById('btnTrocarFilho');
+        const btnSuporte = document.getElementById('btnSuporte');
+        const modalSuporte = document.getElementById('modalSuporte');
+        const btnFecharSuporte = document.getElementById('btnFecharSuporte');
+        const btnEnviarProblema = document.getElementById('btnEnviarProblema');
+        const txtProblema = document.getElementById('txtProblema');
+        const infoCardMap = document.getElementById('infoCardMap');
+        const txtCoords = document.getElementById('txtCoords');
+        const txtHora = document.getElementById('txtHora');
+
+        let map = null, camadaSatelite, camadaRuas, marker = null;
+        let modoAtual = 'satelite';
+        let primeiraLocalizacao = true;
+        let idCriancaAtual = null;
+
+        btnVincular.addEventListener('click', realizarVinculacao);
+        inputCodigo.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') realizarVinculacao();
+        });
+
+        function realizarVinculacao() {
+            const codigo = inputCodigo.value.trim().toUpperCase();
+            if (!codigo) {
+                erroMsg.innerText = "⚠️ Por favor, digite o código de convite!";
+                return;
+            }
+            erroMsg.innerText = "";
+            socket.emit('vincular_painel', codigo);
+        }
+
+        // Botão para retornar à tela de boas-vindas e trocar de dependente
+        btnTrocarFilho.addEventListener('click', () => {
+            welcomeScreen.style.display = 'flex';
+            welcomeScreen.style.opacity = '1';
+            inputCodigo.value = '';
+            primeiraLocalizacao = true;
+            idCriancaAtual = null;
+            infoCardMap.style.display = 'none';
+            if (marker && map) {
+                map.removeLayer(marker);
+                marker = null;
+            }
+        });
+
+        // Controles do Modal de Suporte Técnico
+        btnSuporte.addEventListener('click', () => modalSuporte.style.display = 'flex');
+        btnFecharSuporte.addEventListener('click', () => modalSuporte.style.display = 'none');
+
+        btnEnviarProblema.addEventListener('click', () => {
+            const descricao = txtProblema.value.trim();
+            if (!descricao) {
+                alert("Por favor, descreva o problema técnico.");
+                return;
+            }
+
+            socket.emit('reportar_problema', {
+                origem: 'Painel Pais',
+                criancaId: idCriancaAtual || 'Não vinculado',
+                descricao: descricao,
+                timestamp: new Date().toLocaleString()
+            });
+
+            alert("✅ Problema reportado com sucesso ao Administrador!");
+            txtProblema.value = '';
+            modalSuporte.style.display = 'none';
+        });
+
+        socket.on('vinculacao_resposta', (resposta) => {
+            if (resposta.sucesso) {
+                idCriancaAtual = resposta.idCrianca;
+                welcomeScreen.style.opacity = '0';
+                setTimeout(() => {
+                    welcomeScreen.style.display = 'none';
+                }, 400);
+                
+                tituloPainel.innerText = `👶 ${resposta.nomeCrianca}`;
+                infoCardMap.style.display = 'flex';
+                
+                if (!map) {
+                    inicializarMapa();
+                } else {
+                    primeiraLocalizacao = true;
+                    if(marker) { map.removeLayer(marker); marker = null; }
+                }
+            } else {
+                erroMsg.innerText = "❌ " + resposta.mensagem;
+            }
+        });
+
+        // Ouvinte de Alerta Crítico / Zona Estranha vindo do app da criança
+        socket.on('alerta_recebido', (dados) => {
+            alert(`🚨 ALERTA DE SEGURANÇA: ${dados.mensagem} (${dados.timestamp})`);
+            statusDiv.className = "badge-status emergencia";
+            statusDiv.innerHTML = `<span>🚨</span> ALERTA DE PERIGO!`;
+        });
+
+        function inicializarMapa() {
+            map = L.map('map', { zoomControl: false }).setView([0, 0], 13);
+            
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            camadaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri'
+            });
+
+            camadaRuas = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            });
+
+            camadaSatelite.addTo(map);
+
+            btnAlternar.addEventListener('click', () => {
+                if (modoAtual === 'satelite') {
+                    map.removeLayer(camadaSatelite);
+                    camadaRuas.addTo(map);
+                    modoAtual = 'ruas';
+                    btnAlternar.innerText = "🛰️ Mudar para Satélite";
+                } else {
+                    map.removeLayer(camadaRuas);
+                    camadaSatelite.addTo(map);
+                    modoAtual = 'satelite';
+                    btnAlternar.innerText = "🔄 Mudar para Ruas";
+                }
+            });
+
+            socket.on('atualizar_mapa', (dados) => {
+                const { latitude, longitude, timestamp } = dados;
+                const latLng = [latitude, longitude];
+
+                if (primeiraLocalizacao) {
+                    map.setView(latLng, 16);
+                    primeiraLocalizacao = false;
+                }
+
+                if (marker) {
+                    marker.setLatLng(latLng);
+                } else {
+                    marker = L.marker(latLng).addTo(map)
+                        .bindPopup(`<b>Dispositivo Ativo</b><br>Atualizado às: ${timestamp}`)
+                        .openPopup();
+                }
+
+                // Atualiza indicadores visuais se não estiver em emergência
+                if (!statusDiv.classList.contains('emergencia')) {
+                    statusDiv.className = "badge-status online";
+                    statusDiv.innerHTML = `<span>🟢</span> Online`;
+                }
+                
+                txtCoords.innerText = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                txtHora.innerText = timestamp;
+            });
+        }
+    </script>
+</body>
+</html>

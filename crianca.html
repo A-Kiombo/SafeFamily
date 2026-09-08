@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <!-- Configurações de PWA e Ícone -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeFamily - Modo Protegido</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #0f172a; 
+            color: white; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            text-align: center;
+            padding: 16px;
+        }
+        .card { 
+            background: rgba(30, 41, 59, 0.7); 
+            padding: 30px 20px; 
+            border-radius: 20px; 
+            backdrop-filter: blur(12px); 
+            width: 100%; 
+            max-width: 380px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        h2 { margin-top: 0; font-size: 22px; }
+        #status { 
+            font-weight: 600; 
+            margin: 20px 0; 
+            font-size: 14px; 
+            padding: 12px; 
+            border-radius: 10px; 
+            background: rgba(0,0,0,0.3); 
+        }
+        .info { font-size: 13px; color: #94a3b8; margin-top: 10px; }
+
+        /* Botão Flutuante de Emergência Gigante e Destacado */
+        .btn-emergencia-flutuante {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 380px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            animation: pulsar 2s infinite;
+            transition: transform 0.1s;
+        }
+        .btn-emergencia-flutuante:active { transform: translateX(-50%) scale(0.97); }
+
+        @keyframes pulsar {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>🛡️ SafeFamily Ativo</h2>
+        <p class="info" id="infoCrianca">A carregar dispositivo...</p>
+        <div id="status">A aguardar sinal de GPS...</div>
+        <div class="info" id="coords">Lat: -- | Lng: --</div>
+    </div>
+
+    <!-- Botão de Pânico Permanente na Tela -->
+    <button class="btn-emergencia-flutuante" id="btnEmergencia">
+        <span>🚨</span> ACIONAR ALERTA DE PERIGO
+    </button>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        // Conecta usando a mesma origem/porta atual do servidor Node.js
+        const socket = io(window.location.origin);
+
+        const statusDiv = document.getElementById('status');
+        const coordsDiv = document.getElementById('coords');
+        const infoCrianca = document.getElementById('infoCrianca');
+
+        // Lógica inteligente de ID de 1 clique:
+        // 1. Tenta apurar se veio um ID novo na URL (ex: ?id=crianca_joao)
+        const urlParams = new URLSearchParams(window.location.search);
+        let idCriancaAtiva = urlParams.get('id');
+
+        if (idCriancaAtiva) {
+            // Se veio na URL, grava permanentemente no telemóvel para os próximos cliques
+            localStorage.setItem('safeFamily_id', idCriancaAtiva);
+        } else {
+            // Se não veio na URL (porque abriu direto pelo ícone salvo), recupera o que já estava guardado
+            idCriancaAtiva = localStorage.getItem('safeFamily_id');
+        }
+
+        // Se mesmo assim não houver nenhum ID guardado no aparelho
+        if (!idCriancaAtiva) {
+            infoCrianca.innerText = "⚠️ Dispositivo não configurado";
+            statusDiv.innerText = "Por favor, abra o link de instalação enviado pelo administrador.";
+            statusDiv.style.background = "rgba(239, 68, 68, 0.3)";
+            statusDiv.style.color = "#f87171";
+        } else {
+            infoCrianca.innerText = `ID Conectado: ${idCriancaAtiva}`;
+
+            // Inicia o rastreamento automático do GPS
+            if (!navigator.geolocation) {
+                statusDiv.innerText = "Erro: GPS não suportado neste aparelho.";
+                statusDiv.style.background = "rgba(239, 68, 68, 0.4)";
+            } else {
+                statusDiv.innerText = "🟢 Transmitindo localização em segundo plano...";
+                statusDiv.style.background = "rgba(34, 197, 94, 0.2)";
+                statusDiv.style.color = "#4ade80";
+
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+                        const timestamp = new Date().toLocaleTimeString();
+
+                        coordsDiv.innerText = `Lat: ${latitude.toFixed(4)} | Lng: ${longitude.toFixed(4)}`;
+
+                        // Envia os dados para o servidor na sala específica desta criança
+                        socket.emit('enviar_coordenada', {
+                            idCrianca: idCriancaAtiva,
+                            latitude,
+                            longitude,
+                            timestamp
+                        });
+                    },
+                    (error) => {
+                        console.error(error);
+                        statusDiv.innerText = "Aviso GPS: Ative a localização.";
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        maximumAge: 5000,
+                        timeout: 15000
+                    }
+                );
+            }
+        }
+
+        // Botão de Pânico (Disparo imediato ao toque)
+        document.getElementById('btnEmergencia').addEventListener('click', () => {
+            if (!idCriancaAtiva) {
+                alert("Erro: Este dispositivo não está vinculado a nenhuma família.");
+                return;
+            }
+
+            socket.emit('enviar_alerta', {
+                idCrianca: idCriancaAtiva,
+                tipo: 'EMERGENCIA',
+                mensagem: 'A criança acionou o botão de pânico de perigo!',
+                timestamp: new Date().toLocaleTimeString()
+            });
+
+            // Feedback visual imediato de sucesso no botão
+            const btn = document.getElementById('btnEmergencia');
+            btn.style.background = "#16a34a";
+            btn.innerHTML = "✅ Alerta Enviado aos Pais!";
+            setTimeout(() => {
+                btn.style.background = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
+                btn.innerHTML = "<span>🚨</span> ACIONAR ALERTA DE PERIGO";
+            }, 4000);
+        });
+    </script>
+</body>
+</html>

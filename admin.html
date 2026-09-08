@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeFamily - Painel Administrativo</title>
+    <!-- Fonte moderna do Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #f8fafc; 
+            margin: 0; 
+            padding: 16px; 
+            color: #1e293b; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 24px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
+        }
+        .header-title {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .header-title h1 { 
+            color: #1e3c72; 
+            margin: 0 0 8px 0; 
+            font-size: 22px; 
+            font-weight: 700;
+        }
+        .header-title p { 
+            color: #64748b; 
+            font-size: 13px; 
+            margin: 0; 
+        }
+
+        .form-card {
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px; color: #475569; }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            background: white;
+            transition: border-color 0.2s;
+        }
+        input:focus { 
+            border-color: #2563eb; 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); 
+        }
+        button.btn-primary { 
+            background: #2563eb; 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            border-radius: 8px; 
+            font-size: 15px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            width: 100%; 
+            margin-top: 6px;
+            transition: background 0.2s;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        button.btn-primary:hover { background: #1d4ed8; }
+        
+        #msg { margin-top: 12px; text-align: center; font-weight: 500; font-size: 13px; }
+
+        /* Lista de Famílias em formato de Cartões responsivos */
+        .list-section h3 { font-size: 16px; color: #1e293b; margin-bottom: 12px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
+        
+        .familia-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .familia-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .familia-nome { font-weight: 700; font-size: 15px; color: #0f172a; }
+        .familia-resp { font-size: 12px; color: #64748b; background: #f1f5f9; padding: 3px 8px; border-radius: 20px; }
+        
+        .familia-info { font-size: 13px; color: #475569; margin-bottom: 8px; }
+        
+        .link-box {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: #f8fafc;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px dashed #cbd5e1;
+        }
+        .link-text { 
+            font-family: monospace; 
+            font-size: 11px; 
+            color: #334155; 
+            word-break: break-all; 
+            flex-grow: 1; 
+        }
+        .btn-copiar {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #334155;
+            white-space: nowrap;
+        }
+        .btn-copiar:hover { background: #cbd5e1; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-title">
+            <h1>⚙️ Admin SafeFamily</h1>
+            <p>Gerencie acessos e vínculos familiares de forma simples.</p>
+        </div>
+
+        <!-- Formulário Estilizado -->
+        <div class="form-card">
+            <div class="form-group">
+                <label>Nome do Responsável (Pai/Mãe):</label>
+                <input type="text" id="responsavel" placeholder="Ex: Carlos Silva">
+            </div>
+            <div class="form-group">
+                <label>Nome da Criança / Dependente:</label>
+                <input type="text" id="nomeCrianca" placeholder="Ex: João Silva">
+            </div>
+            <div class="form-group">
+                <label>ID Único (Ex: crianca_joao):</label>
+                <input type="text" id="idCrianca" placeholder="Ex: crianca_joao">
+            </div>
+            <div class="form-group">
+                <label>Código de Convite Pais (Ex: FILHO1):</label>
+                <input type="text" id="codigoPais" placeholder="Ex: FILHO1" style="text-transform: uppercase;">
+            </div>
+            <button class="btn-primary" id="btnCadastrar">Cadastrar Nova Família</button>
+            <div id="msg"></div>
+        </div>
+
+        <!-- Lista Responsiva de Cadastrados -->
+        <div class="list-section">
+            <h3>📋 Famílias Cadastradas</h3>
+            <div id="listaFamilias">
+                <!-- Preenchido dinamicamente via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const btnCadastrar = document.getElementById('btnCadastrar');
+        const msg = document.getElementById('msg');
+        const listaFamilias = document.getElementById('listaFamilias');
+
+        async function carregarFamilias() {
+            try {
+                // Utiliza rota relativa para buscar na mesma porta e origem do servidor atual (porta 3000)
+                const res = await fetch('/api/familias');
+                const data = await res.json();
+                listaFamilias.innerHTML = '';
+
+                let total = 0;
+                for (let codigo in data) {
+                    total++;
+                    const fam = data[codigo];
+                    
+                    // Gera o link de instalação apontando dinamicamente para o crianca.html com o ID correto da família
+                    const linkInstalacao = `${window.location.origin}/crianca.html?id=${fam.id}`;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'familia-card';
+                    card.innerHTML = `
+                        <div class="familia-header">
+                            <span class="familia-nome">👶 ${fam.nome}</span>
+                            <span class="familia-resp">👤 ${fam.responsavel}</span>
+                        </div>
+                        <div class="familia-info">
+                            Código Pais: <b><code>${fam.codigoPais}</code></b> | ID: <code>${fam.id}</code>
+                        </div>
+                        <div class="link-box">
+                            <span class="link-text" id="link_${total}">${linkInstalacao}</span>
+                            <button class="btn-copiar" onclick="copiarLink('link_${total}', this)">Copiar Link</button>
+                        </div>
+                    `;
+                    listaFamilias.appendChild(card);
+                }
+
+                if (total === 0) {
+                    listaFamilias.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px;">Nenhuma família cadastrada ainda.</p>';
+                }
+            } catch (e) {
+                console.error("Erro ao carregar famílias", e);
+            }
+        }
+
+        function copiarLink(elementId, btn) {
+            const texto = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(texto).then(() => {
+                const original = btn.innerText;
+                btn.innerText = "Copiado! ✓";
+                btn.style.background = "#22c55e";
+                btn.style.color = "white";
+                setTimeout(() => {
+                    btn.innerText = original;
+                    btn.style.background = "#e2e8f0";
+                    btn.style.color = "#334155";
+                }, 2000);
+            });
+        }
+
+        btnCadastrar.addEventListener('click', async () => {
+            const responsavel = document.getElementById('responsavel').value.trim();
+            const nomeCrianca = document.getElementById('nomeCrianca').value.trim();
+            const idCrianca = document.getElementById('idCrianca').value.trim();
+            const codigoPais = document.getElementById('codigoPais').value.trim().toUpperCase();
+
+            if (!responsavel || !nomeCrianca || !idCrianca || !codigoPais) {
+                msg.style.color = "#dc2626";
+                msg.innerText = "⚠️ Preencha todos os campos!";
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/cadastrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ responsavel, nomeCrianca, idCrianca, codigoPais })
+                });
+                const data = await res.json();
+
+                if (data.sucesso) {
+                    msg.style.color = "#16a34a";
+                    msg.innerText = "✅ " + data.mensagem;
+                    document.getElementById('responsavel').value = '';
+                    document.getElementById('nomeCrianca').value = '';
+                    document.getElementById('idCrianca').value = '';
+                    document.getElementById('codigoPais').value = '';
+                    carregarFamilias();
+                } else {
+                    msg.style.color = "#dc2626";
+                    msg.innerText = "⚠️ " + data.mensagem;
+                }
+            } catch (e) {
+                msg.style.color = "#dc2626";
+                msg.innerText = "❌ Erro de conexão com o servidor.";
+            }
+        });
+
+        carregarFamilias();
+    </script>
+</body>
+</html>
